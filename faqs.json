@@ -1,0 +1,102 @@
+[
+  {
+    "question": "What is Cloudify?",
+    "answer": "Cloudify is a modern, scalable cloud hosting platform designed for developers and businesses to deploy applications quickly and securely."
+  },
+  {
+    "question": "How do I create an account?",
+    "answer": "You can create an account by clicking the 'Sign Up' button on our homepage and providing your email address, a secure password, and billing information."
+  },
+  {
+    "question": "Is there a free tier available?",
+    "answer": "Yes, Cloudify offers a free tier for developers to test our services. It includes limited compute resources and 5GB of storage per month."
+  },
+  {
+    "question": "What payment methods do you accept?",
+    "answer": "We accept major credit cards (Visa, MasterCard, American Express), PayPal, and wire transfers for annual enterprise plans."
+  },
+  {
+    "question": "Can I upgrade my plan at any time?",
+    "answer": "Absolutely. You can upgrade or downgrade your plan at any time from your account dashboard. Changes take effect immediately."
+  },
+  {
+    "question": "Do you offer refunds?",
+    "answer": "We offer a 14-day money-back guarantee for all new subscriptions. If you are not satisfied, you can request a full refund within this period."
+  },
+  {
+    "question": "What kind of customer support do you provide?",
+    "answer": "We offer 24/7 email and chat support for all customers. Enterprise customers also have access to dedicated phone support and a technical account manager."
+  },
+  {
+    "question": "Where are your data centers located?",
+    "answer": "Our data centers are strategically located across North America, Europe, and Asia to ensure low latency and high availability globally."
+  },
+  {
+    "question": "How do you ensure data security?",
+    "answer": "We use industry-standard encryption for data at rest and in transit. We also comply with SOC 2, GDPR, and ISO 27001 standards to ensure your data is secure."
+  },
+  {
+    "question": "Can I host multiple domains on a single account?",
+    "answer": "Yes, our standard and premium plans allow you to host multiple domains from a single Cloudify account."
+  },
+  {
+    "question": "Do you provide automatic backups?",
+    "answer": "Yes, we provide daily automated backups for all hosted databases and applications. You can also trigger manual backups at any time."
+  },
+  {
+    "question": "How long are backups retained?",
+    "answer": "Automated backups are retained for 30 days by default. You can configure longer retention periods in your account settings for an additional fee."
+  },
+  {
+    "question": "Do you offer a CDN (Content Delivery Network)?",
+    "answer": "Yes, a global CDN is integrated into all our hosting plans to ensure your static assets are delivered quickly to users around the world."
+  },
+  {
+    "question": "Can I use my own SSL certificate?",
+    "answer": "Yes, you can upload and manage your own custom SSL certificates, or use our free, auto-renewing Let's Encrypt certificates."
+  },
+  {
+    "question": "What operating systems are supported on virtual machines?",
+    "answer": "We support a wide range of operating systems, including various Linux distributions (Ubuntu, CentOS, Debian) and Windows Server."
+  },
+  {
+    "question": "Is SSH access provided?",
+    "answer": "Yes, full root SSH access is provided for all virtual private servers and dedicated instances."
+  },
+  {
+    "question": "Do you monitor server uptime?",
+    "answer": "Yes, we continuously monitor all infrastructure and offer a 99.99% uptime Service Level Agreement (SLA)."
+  },
+  {
+    "question": "What happens if my site exceeds its bandwidth limit?",
+    "answer": "If you exceed your bandwidth limit, your site will remain online, but you will be billed for overages at our standard rate of $0.05 per GB."
+  },
+  {
+    "question": "Do you support containerized applications?",
+    "answer": "Yes, Cloudify offers fully managed Kubernetes clusters and a serverless container engine for deploying Docker images."
+  },
+  {
+    "question": "Can I set up load balancing?",
+    "answer": "Yes, we offer Layer 4 and Layer 7 load balancers that can be provisioned instantly from the dashboard."
+  },
+  {
+    "question": "Do you offer managed databases?",
+    "answer": "We offer fully managed MySQL, PostgreSQL, and Redis databases with automated backups, scaling, and high availability."
+  },
+  {
+    "question": "Is there an API available for developers?",
+    "answer": "Yes, we provide a comprehensive REST API that allows you to programmatically manage all aspects of your Cloudify infrastructure."
+  },
+  {
+    "question": "Do you provide migration assistance?",
+    "answer": "Yes, our support team offers free basic migration assistance. For complex enterprise migrations, we provide specialized consulting services."
+  },
+  {
+    "question": "How do I cancel my subscription?",
+    "answer": "You can cancel your subscription at any time from the billing section of your dashboard. Your services will remain active until the end of the current billing cycle."
+  },
+  {
+    "question": "Do you have an affiliate program?",
+    "answer": "Yes, we have a rewarding affiliate program. You can earn commissions for every new customer you refer to Cloudify."
+  }
+]

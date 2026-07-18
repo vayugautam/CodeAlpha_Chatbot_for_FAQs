@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudify FAQ Chatbot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <div class="bot-info">
+                <div class="avatar">
+                    <span class="avatar-icon">C</span>
+                    <span class="status-indicator"></span>
+                </div>
+                <div>
+                    <h1>Cloudify Support</h1>
+                    <p>Always online</p>
+                </div>
+            </div>
+            <button class="settings-btn" id="themeToggle" aria-label="Toggle Theme">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+        </header>
+
+        <div class="chat-box" id="chatBox">
+            <div class="message bot-message">
+                <div class="message-content">
+                    Hi! I'm the Cloudify AI Assistant. How can I help you today?
+                </div>
+                <div class="message-timestamp">Just now</div>
+            </div>
+        </div>
+
+        <div class="typing-indicator hidden" id="typingIndicator">
+            <span></span><span></span><span></span>
+        </div>
+
+        <form class="input-area" id="chatForm">
+            <input type="text" id="userInput" placeholder="Ask a question..." autocomplete="off" required>
+            <button type="submit" id="sendBtn" aria-label="Send Message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </form>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
