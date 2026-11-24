@@ -141,13 +141,14 @@ class FAQRAGService:
 
     def retrieve(self, question: str) -> list[dict[str, Any]]:
         query_vector = self._embed(question, "RETRIEVAL_QUERY")
-        hits = self.vector_client.search(
+        response = self.vector_client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=self.top_k,
             with_payload=True,
             score_threshold=self.score_threshold,
         )
+        hits = response.points
         return [
             {
                 "question": hit.payload.get("question", ""),
