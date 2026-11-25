@@ -1,216 +1,112 @@
-# Cloudify FAQ Chatbot — Retrieval-Augmented Generation
+# CodeAlpha FAQ Chatbot
 
-A web-based FAQ assistant that retrieves relevant entries from a Cloudify knowledge base with semantic vector search, then uses a language model to generate a grounded answer. The project uses **Gemini Embeddings**, **Qdrant**, **Groq**, and **FastAPI**.
+An authenticated Cloudify FAQ chatbot. Gemini creates 3072-dimensional embeddings, Qdrant Cloud retrieves the shared FAQ knowledge records, and Groq produces cited answers that are checked against retrieved evidence. PostgreSQL stores users and private conversation history. FAQ vectors are global and never scoped to a user.
 
-## How the RAG pipeline works
-
-1. **Knowledge ingestion:** FAQ question-and-answer pairs are loaded from `faqs.json`.
-2. **Embedding generation:** Gemini's `gemini-embedding-001` model converts each FAQ entry into a 768-dimensional vector. The question and answer are embedded together so retrieval can use both.
-3. **Vector storage:** Vectors and their original FAQ text are stored in a Qdrant collection with source metadata.
-4. **Query embedding:** A user's question is embedded with the retrieval-query task type.
-5. **Semantic retrieval:** Qdrant returns the top matching FAQ entries using cosine similarity and a configurable score threshold.
-6. **Grounded generation:** The retrieved entries are added to a constrained prompt and sent to Groq. The model is instructed to answer only from the supplied context.
-7. **Source display:** The API returns the generated answer and the retrieved FAQ questions with similarity scores. The browser displays those sources below the answer.
+## Architecture
 
 ```text
-                         OFFLINE / STARTUP INGESTION
- faqs.json -> Gemini document embeddings -> Qdrant vector collection
-                                                    |
-                                                    |
-                         ONLINE QUESTION FLOW      |
- User -> FastAPI -> Gemini query embedding -> Qdrant semantic search
-                                              |
-                                      Retrieved FAQ context
-                                              |
-                                      Groq chat completion
-                                              |
-                                 Answer + retrieved sources
-                                              |
-                                         Web UI
+faqs.json -> Gemini gemini-embedding-001 -> dedicated Qdrant Cloud collection
+Question -> Gemini query embedding -> top 5 cosine retrieval (threshold .50)
+         -> Groq structured JSON -> citation validation -> Groq evidence check
+         -> PostgreSQL conversation/messages -> React chat with FAQ sources
 ```
 
-This is a RAG application: the language model receives context retrieved from an external knowledge base at question time. It is not fine-tuned on the FAQ data.
+The project uses a modular FastAPI and React/Vite layout adapted to FAQ records and user-owned conversations. It does not upload or process PDFs.
 
-## Features
+## Requirements
 
-- Semantic FAQ retrieval using Gemini embeddings and Qdrant.
-- Context-grounded answer generation using Groq.
-- Similarity threshold and configurable top-k retrieval.
-- Source references and retrieval similarity scores in the chat UI.
-- Fallback response when no FAQ entry passes the retrieval threshold.
-- FastAPI request validation and health endpoint.
-- Responsive chat interface with light/dark theme.
-- Qdrant Cloud support and local persistent Qdrant mode for development.
+- Python 3.11 or newer
+- Node.js 22 and npm
+- PostgreSQL 15+
+- Qdrant Cloud cluster credentials
+- Gemini API key and Groq API key
 
-## Technology stack
+## Windows PowerShell setup
 
-| Layer | Technology | Responsibility |
-|---|---|---|
-| API | FastAPI + Pydantic | HTTP endpoint and request/response validation |
-| Embeddings | Gemini `gemini-embedding-001` | Convert FAQ text and questions into vectors |
-| Vector database | Qdrant | Store vectors and retrieve similar FAQ entries |
-| Generation | Groq | Generate answers grounded in retrieved context |
-| Frontend | HTML, CSS, JavaScript | Chat interface and source display |
-| Server | Uvicorn | Run the FastAPI application |
-
-## Project structure
-
-```text
-.
-├── app.py                 # FastAPI app, startup indexing, chat and health endpoints
-├── rag_service.py         # Embedding, Qdrant retrieval, and Groq generation
-├── faqs.json              # Source FAQ knowledge base
-├── requirements.txt       # Python dependencies
-├── .env.example           # Environment variable template
-├── static/
-│   ├── index.html         # Chat interface
-│   ├── script.js          # API calls and source rendering
-│   └── styles.css         # Responsive styling
-├── run_server.bat         # Windows server shortcut
-└── run_cli.bat            # Legacy CLI shortcut (see note below)
-```
-
-The original TF-IDF implementation has been replaced in the web application. The old `chatbot.py` and `cli.py` files are retained as historical examples and are not used by the RAG API.
-
-## Prerequisites
-
-- Python 3.10+
-- A Gemini API key
-- A Groq API key
-- Qdrant Cloud cluster (recommended for deployment), or local Qdrant storage for development
-
-## Local setup (Windows)
-
-Clone the repository and enter the folder:
+From the project root:
 
 ```powershell
-git clone https://github.com/vayugautam/CodeAlpha_Chatbot_for_FAQs.git
-cd CodeAlpha_Chatbot_for_FAQs
-```
-
-Create and activate a virtual environment:
-
-```powershell
+python --version
 python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-```
-
-Create your local environment file:
-
-```powershell
 Copy-Item .env.example .env
 ```
 
-Add your real API keys to `.env`. Never commit this file.
+If `python` is not recognized, install Python 3.11+ and enable “Add Python to PATH”, open a new PowerShell session, and retry. If the `py` launcher is installed, `py -3.11 -m venv .venv` also works.
 
-For a local Qdrant database, leave `QDRANT_URL` and `QDRANT_API_KEY` empty. The vector database is persisted in `./data/qdrant`.
+Set the variables below in `.env`. Create a separate PostgreSQL database named `codealpha_faq_db`; do not use Study-Buddy's database. Reuse the Qdrant Cloud cluster but set the collection to `codealpha_faq_knowledge_base`. Generate a JWT secret with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
 
-Start the app:
+| Variable | Purpose |
+|---|---|
+| `JWT_SECRET`, `ACCESS_TOKEN_EXPIRE_MINUTES` | Signed bearer tokens and expiry |
+| `DATABASE_URL` | Dedicated PostgreSQL connection (`postgresql+psycopg://...`) |
+| `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION_NAME` | Qdrant Cloud and isolated FAQ collection |
+| `GEMINI_API_KEY`, `GEMINI_EMBEDDING_MODEL`, `GEMINI_EMBEDDING_DIMENSIONS` | Gemini model `gemini-embedding-001`, 3072 dimensions |
+| `GROQ_API_KEY`, `GROQ_MODEL` | Groq generation; default model `openai/gpt-oss-120b` |
+| `RETRIEVAL_TOP_K`, `RETRIEVAL_SCORE_THRESHOLD` | Defaults 5 and 0.50; cosine score higher is better |
+| `CORS_ALLOWED_ORIGINS`, `BACKEND_API_URL`, `VITE_API_BASE_URL` | Browser and development routing |
+
+## Migrations and FAQ ingestion
+
+With PostgreSQL running and `DATABASE_URL` set:
 
 ```powershell
-python app.py
+python -m alembic upgrade head
+python -m app.ingest
 ```
 
-Open [http://localhost:8000](http://localhost:8000). On startup, the application embeds the FAQ entries and indexes them into Qdrant. The first start and each restart can make Gemini embedding API calls.
+Ingestion uses deterministic FAQ IDs, upserts records, and removes stale points only from the dedicated collection. It never deletes or recreates Study-Buddy's collection. Optional `category` metadata is retained only if present in the FAQ JSON. For future schema changes:
 
-## Qdrant Cloud configuration
-
-Create a Qdrant Cloud cluster and set these values in `.env`:
-
-```env
-QDRANT_URL=https://YOUR-CLUSTER-URL
-QDRANT_API_KEY=your_qdrant_api_key
-QDRANT_COLLECTION=cloudify_faq_knowledge
+```powershell
+python -m alembic revision --autogenerate -m "describe change"
+python -m alembic upgrade head
 ```
 
-Use the Qdrant cluster URL and API key from your Qdrant dashboard. Do not put credentials in source code.
+## Run locally
 
-## Environment variables
+Terminal 1, backend:
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `GEMINI_API_KEY` | Yes | — | Gemini embedding API authentication |
-| `GROQ_API_KEY` | Yes | — | Groq generation API authentication |
-| `QDRANT_URL` | No | Local mode | Qdrant Cloud URL |
-| `QDRANT_API_KEY` | For Cloud | — | Qdrant Cloud authentication |
-| `QDRANT_COLLECTION` | No | `cloudify_faq_knowledge` | Collection name |
-| `QDRANT_LOCAL_PATH` | No | `./data/qdrant` | Local persistent database path |
-| `GEMINI_EMBEDDING_MODEL` | No | `gemini-embedding-001` | Embedding model |
-| `GROQ_MODEL` | No | `openai/gpt-oss-120b` | Generation model |
-| `RETRIEVAL_TOP_K` | No | `4` | Maximum FAQ matches sent to the LLM |
-| `RETRIEVAL_SCORE_THRESHOLD` | No | `0.35` | Minimum Qdrant similarity score |
-| `PORT` | No | `8000` | Web server port |
+```powershell
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Terminal 2, frontend:
+
+```powershell
+npm install
+npm run dev
+```
+
+Open the Vite URL, normally `http://localhost:5173`. API docs: `http://127.0.0.1:8000/docs`; readiness: `GET /api/health`. Build the frontend using `npm run build`; FastAPI serves `dist/` when present.
 
 ## API
 
-### `GET /health`
+- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
+- `POST /api/conversations`, `GET /api/conversations`, `GET /api/conversations/{id}`, `DELETE /api/conversations/{id}`
+- `POST /api/conversations/{id}/chat` with `{"message":"How do I create an account?"}`
+- `GET /api/health`
 
-Returns application status and the number of indexed FAQ entries.
+Protected routes require `Authorization: Bearer <access_token>`. Chat returns `answer`, `conversation_id`, and FAQ sources with IDs, original questions, and retrieval scores. Conversation access always checks ownership; citations are persisted with assistant messages.
 
-### `POST /api/chat`
+## Tests and Docker
 
-Request:
-
-```json
-{
-  "message": "How long are backups retained?"
-}
+```powershell
+python -m pytest -q
+npm run build
+docker build -t codealpha-faq .
+docker run --env-file .env -p 8000:8000 codealpha-faq
 ```
 
-Response shape:
+Tests mock Gemini, Qdrant, and Groq. The container applies migrations at startup and expects external PostgreSQL and Qdrant Cloud services; it contains no credentials.
 
-```json
-{
-  "reply": "Generated answer grounded in retrieved FAQ context [1].",
-  "sources": [
-    {
-      "id": 1,
-      "question": "How long are backups retained?",
-      "source": "faqs.json",
-      "score": 0.82
-    }
-  ],
-  "retrieval_count": 1
-}
-```
+## Security and troubleshooting
 
-The numeric score is a vector similarity score, not a probability or a measure of answer correctness.
-
-## Updating the knowledge base
-
-Edit `faqs.json` using this structure:
-
-```json
-{
-  "question": "Your question?",
-  "answer": "The factual answer."
-}
-```
-
-Restart the application to rebuild the Qdrant collection from the updated file. The startup indexing process replaces the points in the configured collection, so use a dedicated collection for this project.
-
-## Limitations and possible improvements
-
-- The current knowledge base contains a small set of FAQ records; larger document sources would need chunking and metadata-aware ingestion.
-- Startup indexing embeds all FAQ entries again. A production ingestion pipeline should detect changed records and update only those vectors.
-- Retrieval uses a single dense-vector search. Hybrid search, reranking, and retrieval evaluation could improve quality.
-- The score threshold is a configurable heuristic and should be tuned against a representative evaluation set.
-- The current chat endpoint is stateless and does not retain conversation history.
-- API usage, latency, and cost should be monitored before production deployment.
-
-## Security
-
-- Store API keys in environment variables or your hosting provider's secret manager.
-- Keep `.env`, local vector storage, and logs out of version control.
-- Do not expose API keys in frontend JavaScript.
-- Apply rate limiting and authentication before exposing a public production endpoint.
-
-## License
-
-This project was created for an FAQ chatbot task and subsequently upgraded to demonstrate a RAG architecture.
+- Keep `.env`, API keys, JWT secrets, local database files, `node_modules/`, and `dist/` out of GitHub.
+- For chat service errors, inspect Gemini, Qdrant, and Groq configuration and backend logs.
+- The Qdrant collection must use a dense 3072-dimensional cosine vector. The service validates this and stops if it differs.
+- Tune the 0.50 similarity threshold against the FAQ dataset if relevant questions are rejected.
+- PostgreSQL must be reachable before migrations and database endpoints work.
+- Do not point this app to Study-Buddy's PostgreSQL database or PDF vector collection.

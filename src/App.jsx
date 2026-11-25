@@ -1,0 +1,4 @@
+import {BrowserRouter,Navigate,Route,Routes} from 'react-router';
+import Layout from './components/Layout';import Protected from './components/Protected';import {AuthProvider} from './context/AuthContext';
+import PublicHome from './pages/PublicHome';import AuthPage from './pages/AuthPage';import DashboardPage from './pages/DashboardPage';import ChatPage from './pages/ChatPage';import ConversationsPage from './pages/ConversationsPage';
+export default function App(){return <BrowserRouter><AuthProvider><Routes><Route element={<Layout/>}><Route index element={<PublicHome/>}/><Route path="auth" element={<AuthPage/>}/><Route element={<Protected/>}><Route path="dashboard" element={<DashboardPage/>}/><Route path="conversations" element={<ConversationsPage/>}/><Route path="chat/:id" element={<ChatPage/>}/></Route><Route path="*" element={<Navigate to="/"/>}/></Route></Routes></AuthProvider></BrowserRouter>}
