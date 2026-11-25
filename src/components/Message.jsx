@@ -1,0 +1,2 @@
+import ReactMarkdown from 'react-markdown';import remarkGfm from 'remark-gfm';
+export default function Message({item}){return <article className={`message ${item.role}`}><ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>{item.citations?.length>0&&<aside><b>FAQ sources</b>{item.citations.map(x=><div key={x.faq_id}>{x.question}<small>Similarity {Number(x.similarity).toFixed(2)}</small></div>)}</aside>}<time>{item.created_at?new Date(item.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):''}</time></article>}

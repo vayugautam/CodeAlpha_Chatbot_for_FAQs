@@ -1,146 +1,112 @@
-﻿# CodeAlpha Chatbot for FAQs
+# CodeAlpha FAQ Chatbot
 
-A simple FAQ chatbot built with Python, FastAPI, NLTK, and scikit-learn. The chatbot loads questions and answers from `faqs.json`, matches user questions with TF-IDF cosine similarity, and returns the closest FAQ answer through both a web interface and a command-line interface.
+An authenticated Cloudify FAQ chatbot. Gemini creates 3072-dimensional embeddings, Qdrant Cloud retrieves the shared FAQ knowledge records, and Groq produces cited answers that are checked against retrieved evidence. PostgreSQL stores users and private conversation history. FAQ vectors are global and never scoped to a user.
 
-## Features
-
-- FastAPI backend with a `/api/chat` endpoint
-- Browser-based chat UI served from the `static` folder
-- CLI chatbot mode for terminal use
-- FAQ matching with NLTK preprocessing and TF-IDF similarity
-- Light and dark theme toggle in the frontend
-- JSON-based FAQ knowledge base
-
-## Project Structure
+## Architecture
 
 ```text
-.
-|-- app.py              # FastAPI app and API route
-|-- chatbot.py          # FAQ matching logic
-|-- cli.py              # Command-line chatbot
-|-- faqs.json           # FAQ knowledge base
-|-- requirements.txt    # Python dependencies
-|-- run_cli.bat         # Windows shortcut for CLI mode
-|-- run_server.bat      # Windows shortcut for web server
-`-- static/
-    |-- index.html      # Chat UI
-    |-- script.js       # Frontend chat logic
-    `-- styles.css      # UI styling
+faqs.json -> Gemini gemini-embedding-001 -> dedicated Qdrant Cloud collection
+Question -> Gemini query embedding -> top 5 cosine retrieval (threshold .50)
+         -> Groq structured JSON -> citation validation -> Groq evidence check
+         -> PostgreSQL conversation/messages -> React chat with FAQ sources
 ```
+
+The project uses a modular FastAPI and React/Vite layout adapted to FAQ records and user-owned conversations. It does not upload or process PDFs.
 
 ## Requirements
 
-- Python 3.9 or newer
-- pip
+- Python 3.11 or newer
+- Node.js 22 and npm
+- PostgreSQL 15+
+- Qdrant Cloud cluster credentials
+- Gemini API key and Groq API key
 
-## Installation
+## Windows PowerShell setup
 
-Clone the repository:
+From the project root:
 
-```bash
-git clone https://github.com/vayugautam/CodeAlpha_Chatbot_for_FAQs.git
-cd CodeAlpha_Chatbot_for_FAQs
-```
-
-Create and activate a virtual environment:
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
+```powershell
+python --version
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-## Run the Web App
+If `python` is not recognized, install Python 3.11+ and enable “Add Python to PATH”, open a new PowerShell session, and retry. If the `py` launcher is installed, `py -3.11 -m venv .venv` also works.
 
-Start the FastAPI server:
+Set the variables below in `.env`. Create a separate PostgreSQL database named `codealpha_faq_db`; do not use Study-Buddy's database. Reuse the Qdrant Cloud cluster but set the collection to `codealpha_faq_knowledge_base`. Generate a JWT secret with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
 
-```bash
-python app.py
+| Variable | Purpose |
+|---|---|
+| `JWT_SECRET`, `ACCESS_TOKEN_EXPIRE_MINUTES` | Signed bearer tokens and expiry |
+| `DATABASE_URL` | Dedicated PostgreSQL connection (`postgresql+psycopg://...`) |
+| `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION_NAME` | Qdrant Cloud and isolated FAQ collection |
+| `GEMINI_API_KEY`, `GEMINI_EMBEDDING_MODEL`, `GEMINI_EMBEDDING_DIMENSIONS` | Gemini model `gemini-embedding-001`, 3072 dimensions |
+| `GROQ_API_KEY`, `GROQ_MODEL` | Groq generation; default model `openai/gpt-oss-120b` |
+| `RETRIEVAL_TOP_K`, `RETRIEVAL_SCORE_THRESHOLD` | Defaults 5 and 0.50; cosine score higher is better |
+| `CORS_ALLOWED_ORIGINS`, `BACKEND_API_URL`, `VITE_API_BASE_URL` | Browser and development routing |
+
+## Migrations and FAQ ingestion
+
+With PostgreSQL running and `DATABASE_URL` set:
+
+```powershell
+python -m alembic upgrade head
+python -m app.ingest
 ```
 
-Open this URL in your browser:
+Ingestion uses deterministic FAQ IDs, upserts records, and removes stale points only from the dedicated collection. It never deletes or recreates Study-Buddy's collection. Optional `category` metadata is retained only if present in the FAQ JSON. For future schema changes:
 
-```text
-http://localhost:8000
+```powershell
+python -m alembic revision --autogenerate -m "describe change"
+python -m alembic upgrade head
 ```
 
-You can also run the Windows batch file:
+## Run locally
 
-```bash
-run_server.bat
+Terminal 1, backend:
+
+```powershell
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-## Run the CLI Chatbot
+Terminal 2, frontend:
 
-```bash
-python cli.py
+```powershell
+npm install
+npm run dev
 ```
 
-Or use:
+Open the Vite URL, normally `http://localhost:5173`. API docs: `http://127.0.0.1:8000/docs`; readiness: `GET /api/health`. Build the frontend using `npm run build`; FastAPI serves `dist/` when present.
 
-```bash
-run_cli.bat
+## API
+
+- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
+- `POST /api/conversations`, `GET /api/conversations`, `GET /api/conversations/{id}`, `DELETE /api/conversations/{id}`
+- `POST /api/conversations/{id}/chat` with `{"message":"How do I create an account?"}`
+- `GET /api/health`
+
+Protected routes require `Authorization: Bearer <access_token>`. Chat returns `answer`, `conversation_id`, and FAQ sources with IDs, original questions, and retrieval scores. Conversation access always checks ownership; citations are persisted with assistant messages.
+
+## Tests and Docker
+
+```powershell
+python -m pytest -q
+npm run build
+docker build -t codealpha-faq .
+docker run --env-file .env -p 8000:8000 codealpha-faq
 ```
 
-Type `exit` or `quit` to close the CLI chatbot.
+Tests mock Gemini, Qdrant, and Groq. The container applies migrations at startup and expects external PostgreSQL and Qdrant Cloud services; it contains no credentials.
 
-## API Usage
+## Security and troubleshooting
 
-Send a POST request to `/api/chat`:
-
-```bash
-curl -X POST http://localhost:8000/api/chat ^
-  -H "Content-Type: application/json" ^
-  -d "{\"message\":\"How do I create an account?\"}"
-```
-
-Example response:
-
-```json
-{
-  "reply": "You can create an account by clicking the 'Sign Up' button on our homepage and providing your email address, a secure password, and billing information."
-}
-```
-
-## Update FAQs
-
-Edit `faqs.json` and add more objects in this format:
-
-```json
-{
-  "question": "Your question here?",
-  "answer": "Your answer here."
-}
-```
-
-Restart the app after changing the FAQ file.
-
-## GitHub Setup and Push
-
-If this is a new local project, use these commands:
-
-```bash
-git init
-git add .
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/vayugautam/CodeAlpha_Chatbot_for_FAQs.git
-git push -u origin main
-```
-
-If the repository is already initialized and the remote is already added, use:
-
-```bash
-git add .
-git commit -m "update project files"
-git push
-```
-
-## License
-
-This project was created for the CodeAlpha FAQ Chatbot task.
+- Keep `.env`, API keys, JWT secrets, local database files, `node_modules/`, and `dist/` out of GitHub.
+- For chat service errors, inspect Gemini, Qdrant, and Groq configuration and backend logs.
+- The Qdrant collection must use a dense 3072-dimensional cosine vector. The service validates this and stops if it differs.
+- Tune the 0.50 similarity threshold against the FAQ dataset if relevant questions are rejected.
+- PostgreSQL must be reachable before migrations and database endpoints work.
+- Do not point this app to Study-Buddy's PostgreSQL database or PDF vector collection.
